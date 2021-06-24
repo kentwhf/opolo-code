@@ -27,33 +27,6 @@ from simulation_grounding.atp_envs import GroundedEnv, MujocoNormalized
 
 best_mean_reward, n_steps = -np.inf, 0
 
-# def a2c_callback(log_dir, mode, max_score=None):
-#     def callback(_locals, _globals):
-#         """
-#         Callback called at each step (for DQN an others) or after n steps (see ACER or PPO2)
-#         :param _locals: (dict)
-#         :param _globals: (dict)
-#         """
-#         global n_steps
-#         # Print stats every 20 calls
-#         if (n_steps + 1) % 500 == 0:
-#             # Evaluate policy training performance
-#             x, y = ts2xy(load_results(log_dir), 'timesteps')
-#             if len(x) > 0:
-#                 mean_reward = np.mean(y[-100:])
-#                 print(x[-1], 'timesteps')
-#                 print("Last mean reward per episode: {:.2f}".format(mean_reward))
-#
-#                 # Save model
-#                 print("Saving latest model")
-#                 _locals['self'].save(os.path.join(log_dir, 'latest_model.pkl'))
-#                 if 'train' in mode and max_score is not None and mean_reward > max_score:
-#                     print("Stop training.")
-#                     return False
-#         n_steps += 1
-#         return True
-#     return callback
-
 def eval_real_callback(log_dir, eval_real_env, eval_grnd_env, n_eval_episodes = 5):
     def callback(_locals, _globals):
         """
@@ -117,21 +90,21 @@ def evaluate_policy_on_env(env,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--env', default='Hopper-v2', help="Name of the simulator environment (Unmodified)")
-    parser.add_argument('--real_env', default='HopperFrictionModified-v2', help="Name of the Real World environment (Modified)")
-    parser.add_argument('--rollout_policy_path', default="../simulation_grounding/models/TRPO_initial_policy_steps_Hopper-v2_2000000_.pkl", help="relative path of initial policy trained in sim")
+    # parser.add_argument('--env', default='Hopper-v2', help="Name of the simulator environment (Unmodified)")
+    # parser.add_argument('--real_env', default='HopperFrictionModified-v2', help="Name of the Real World environment (Modified)")
+    # parser.add_argument('--rollout_policy_path', default="../simulation_grounding/models/TRPO_initial_policy_steps_Hopper-v2_2000000_.pkl", help="relative path of initial policy trained in sim")
 
     # parser.add_argument('--env', default='Walker2d-v2', help="Name of the simulator environment (Unmodified)")
     # parser.add_argument('--real_env', default='Walker2dModified-v2', help="Name of the Real World environment (Modified)")
     # parser.add_argument('--rollout_policy_path', default="../simulation_grounding/models/TRPO_initial_policy_steps_Walker2d-v2_2000000_.pkl", help="relative path of initial policy trained in sim")
 
-    # parser.add_argument('--env', default='InvertedPendulum-v2', help="Name of the simulator environment (Unmodified)")
-    # parser.add_argument('--real_env', default='InvertedPendulumModified-v2', help="Name of the Real World environment (Modified)")
-    # parser.add_argument('--rollout_policy_path', default="../simulation_grounding/models/TRPO_initial_policy_steps_InvertedPendulum-v2_1000000_.pkl", help="relative path of initial policy trained in sim")
+    parser.add_argument('--env', default='InvertedPendulum-v2', help="Name of the simulator environment (Unmodified)")
+    parser.add_argument('--real_env', default='InvertedPendulumModified-v2', help="Name of the Real World environment (Modified)")
+    parser.add_argument('--rollout_policy_path', default="../simulation_grounding/models/TRPO_initial_policy_steps_InvertedPendulum-v2_1000000_.pkl", help="relative path of initial policy trained in sim")
 
-    parser.add_argument('--ground_algo', help='Grounding Algorithm', default='OPOLO', type=str) # TRPO, PPO2, TRPOGAIFO, OPOLO
-    # parser.add_argument('--atp_policy_path', default="../run/first_trial0317/logs/trpo-gaifo/trpogaifo/Hopper-v2/rank1/action_transformer_policy1.pkl", type=str, help='relative path of action transformer policy')
-    parser.add_argument('--atp_policy_path', default="../run/first_trial0317/logs/td3-opolo-idm-decay-reg/opolo/InvertedPendulum-v2/rank1/action_transformer_policy1.pkl", type=str, help='relative path of action transformer policy')
+    parser.add_argument('--ground_algo', help='Grounding Algorithm', default='TRPOGAIFO', type=str) # TRPO, PPO2, TRPOGAIFO, OPOLO
+    parser.add_argument('--atp_policy_path', default="../run/test/logs/trpo-gaifo/trpogaifo/InvertedPendulum-v2/rank1/action_transformer_policy1.pkl", type=str, help='relative path of action transformer policy')
+    # parser.add_argument('--atp_policy_path', default="../run/test/logs/td3-opolo-idm-decay-reg/opolo/InvertedPendulum-v2/rank1/action_transformer_policy1.pkl", type=str, help='relative path of action transformer policy')
     parser.add_argument('--seed', help='Random generator seed', type=int, default=1)
 
     parser.add_argument('--log-interval', help='Override log interval (default: -1, no change)', default=1000, type=int)

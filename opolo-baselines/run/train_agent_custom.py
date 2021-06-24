@@ -118,7 +118,6 @@ def eval_mujoco_model(args, model, env, step=50000):
         #action, _ = model.predict(obs, deterministic=deterministic)
         action, _ = model.predict(obs, deterministic=False)
 
-
         #if args.algo == 'sac':
         #    action = unscale_action(args.env.action_space, action)
         # Clip Action to avoid out of bound errors
@@ -370,7 +369,7 @@ if __name__ == '__main__':
     config['use_hindsight'] = 'hindsight' in args.task # use ground-truth teacher action for BC
     config['sparse'] = False
 
-    config['double_discriminator'] = True
+    config['double_discriminator'] = False
 
     generate_demo = False
     if generate_demo:

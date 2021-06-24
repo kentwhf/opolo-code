@@ -1,0 +1,11 @@
+cg_damping: 0.1
+cg_iters: 20
+entcoeff: 0.01
+gamma: 0.995
+lam: 0.97
+learning_rate: 0.0004
+max_kl: 0.01
+n_timesteps: 1000000.0
+timesteps_per_batch: 5000
+vf_iters: 5
+vf_stepsize: 0.001
