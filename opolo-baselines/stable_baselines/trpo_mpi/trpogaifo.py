@@ -17,7 +17,7 @@ from stable_baselines.common.policies import ActorCriticPolicy
 from stable_baselines.a2c.utils import total_episode_reward_logger
 from stable_baselines.trpo_mpi.utils import SegmentGenerator, traj_segment_generator, add_vtarg_and_adv, flatten_lists
 
-from stable_baselines.gail.gaifo import GAIfODiscriminator
+from stable_baselines.gail.gaifo import GAIfODiscriminator, GAIfODiscriminator_double
 from stable_baselines.gail.dataset.dataset import ExpertDataset
 from stable_baselines.deepq.replay_buffer import ReplayBuffer
 
@@ -126,8 +126,9 @@ class TRPOGAIFO(ActorCriticRLModel):
     def setup_model(self,config):
         # prevent import loops
         self.expert_data_path = config.get('expert_data_path', None)
-        self.expert_dataset = ExpertDataset(expert_path=self.expert_data_path, ob_flatten=False)
-        print('-'*20 + "expert_data_path: {}".format(self.expert_data_path))
+        if self.expert_data_path is not None:
+            self.expert_dataset = ExpertDataset(expert_path=self.expert_data_path, ob_flatten=False)
+            print('-'*20 + "expert_data_path: {}".format(self.expert_data_path))
         with SetVerbosity(self.verbose):
 
             assert issubclass(self.policy, ActorCriticPolicy), "Error: the input policy for the TRPO model must be " \
@@ -143,12 +144,22 @@ class TRPOGAIFO(ActorCriticRLModel):
                 self.sess = tf_util.make_session(num_cpu=self.n_cpu_tf_sess, graph=self.graph)
 
                 if self.using_gail:
-                    self.discriminator = GAIfODiscriminator(
-                        self.observation_space,
-                        hidden_size=256,
-                        entcoeff=0.001,
-                        gradcoeff=10,
-                        normalize=True)
+                    if config.get('double_discriminator'):
+                        print("Using double discriminator")
+                        self.discriminator = GAIfODiscriminator_double(
+                            self.observation_space,
+                            hidden_size=256,
+                            entcoeff=0.001,
+                            gradcoeff=10,
+                            normalize=True)
+                    else:
+                        print("Using single discriminator")
+                        self.discriminator = GAIfODiscriminator(
+                            self.observation_space,
+                            hidden_size=256,
+                            entcoeff=0.001,
+                            gradcoeff=10,
+                            normalize=True)
 
                 # Construct network for new policy
                 self.policy_pi = self.policy(self.sess, self.observation_space, self.action_space, self.n_envs, 1,
@@ -509,7 +520,7 @@ class TRPOGAIFO(ActorCriticRLModel):
             "vf_iters": self.vf_iters,
             "hidden_size_adversary": self.hidden_size_adversary,
             "adversary_entcoeff": self.adversary_entcoeff,
-            "expert_dataset": self.expert_dataset,
+            # "expert_dataset": self.expert_dataset,
             "g_step": self.g_step,
             "d_step": self.d_step,
             "d_stepsize": self.d_stepsize,

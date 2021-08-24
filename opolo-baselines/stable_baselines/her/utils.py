@@ -22,13 +22,21 @@ class HERGoalEnvWrapper(object):
         self.env = env
         self.metadata = self.env.metadata
         self.action_space = env.action_space
+        #
+        # from collections import OrderedDict
+        # from gym.spaces import Box
+        #
+        # self.spaces = env.observation_space.space = OrderedDict([('achieved_goal', Box(np.NINF, np.inf, (3,), np.float32)),
+        #                                            ('desired_goal', Box(np.NINF, np.inf, (3,), np.float32)),
+        #                                            ('observation', Box(np.NINF, np.inf, (10,), np.float32))])
+
         self.spaces = list(env.observation_space.spaces.values())
+
         # Check that all spaces are of the same type
         # (current limitation of the wrapper)
         space_types = [type(env.observation_space.spaces[key]) for key in KEY_ORDER]
         assert len(set(space_types)) == 1, "The spaces for goal and observation"\
                                            " must be of the same type"
-
         if isinstance(self.spaces[0], spaces.Discrete):
             self.obs_dim = 1
             self.goal_dim = 1

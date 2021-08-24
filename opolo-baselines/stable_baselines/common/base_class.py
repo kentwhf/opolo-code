@@ -113,6 +113,34 @@ class BaseRLModel(ABC):
             raise ValueError("Error: trying to replace the current environment with None")
 
         # sanity checking the environment
+
+
+        # from gym import spaces
+
+        # from collections import OrderedDict
+        # from gym.spaces import Box
+        # # self.observation_space = dict({'achieved_goal': Box(np.NINF, np.inf, (3,), np.float32),
+        # #                                'desired_goal': Box(np.NINF, np.inf, (3,), np.float32),
+        # #                                'observation': Box(np.NINF, np.inf, (10,), np.float32)})
+
+        # low = np.concatenate([env.observation_space["observation"].low,
+        #                       env.observation_space["achieved_goal"].low,
+        #                       env.observation_space["desired_goal"].low])
+
+        # high = np.concatenate([env.observation_space["observation"].high,
+        #                        env.observation_space["achieved_goal"].high,
+        #                        env.observation_space["desired_goal"].high])
+
+        # env.observation_space = spaces.Box(low, high, dtype=np.float32)
+
+        # print("model observation:", self.observation_space)
+        # print("env observation:", env.observation_space)
+        # # print(type(self.observation_space))
+
+        # print("model action:", self.action_space)
+        # print("env action:", env.action_space)
+
+
         assert self.observation_space == env.observation_space, \
             "Error: the environment passed must have at least the same observation space as the model was trained on."
         assert self.action_space == env.action_space, \
@@ -673,6 +701,29 @@ class BaseRLModel(ABC):
         :param observation_space: (gym.spaces) the observation space
         :return: (bool) whether the given observation is vectorized or not
         """
+
+        # Full length
+        if observation_space.shape[0] == 16:
+            try:
+                observation = observation.tolist()
+                observation = np.concatenate((observation["achieved_goal"],
+                                    observation["observation"],
+                                    observation["desired_goal"]))      
+            except TypeError:
+                observation = np.asarray(observation)
+
+        # Reduced length
+        if observation_space.shape[0] == 3:
+            try:
+                observation = observation[:3]      
+            except TypeError:
+                observation = np.asarray(observation)
+        if observation_space.shape[0] == 7:
+            try:
+                observation = np.concatenate((observation[:3], observation[-4:]))    
+            except TypeError:
+                observation = np.asarray(observation)
+
         if isinstance(observation_space, gym.spaces.Box):
             if observation.shape == observation_space.shape:
                 return False
@@ -778,6 +829,13 @@ class ActorCriticRLModel(BaseRLModel):
             mask = [False for _ in range(self.n_envs)]
         observation = np.array(observation)
         vectorized_env = self._is_vectorized_observation(observation, self.observation_space)
+
+        # Reduced (action + achieved goal to pass initial prediction)
+        if self.observation_space.shape[0] == 7:
+            try:
+                observation = np.concatenate((observation[:3], observation[-4:]))    
+            except TypeError:
+                observation = np.asarray(observation)
 
         observation = observation.reshape((-1,) + self.observation_space.shape)
         actions, _, states, _ = self.step(observation, state, mask, deterministic=deterministic)

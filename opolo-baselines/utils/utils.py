@@ -40,6 +40,8 @@ from stable_baselines.common.vec_env import DummyVecEnv, VecNormalize, \
 from stable_baselines.common.cmd_util import make_atari_env, make_atari_env_with_log_monitor
 from stable_baselines.common import set_global_seeds
 
+from simulation_grounding.atp_envs import ATPEnv, MujocoNormalized
+
 ALGOS = {
     'a2c': A2C,
     'acer': ACER,
@@ -162,6 +164,54 @@ def make_env_with_log_monitor(env_id, rank=0, seed=0, log_dir=None, wrapper_clas
 
     return _init
 
+
+def make_atp_env_with_log_monitor(env_id, rank=0, seed=0, log_dir=None, rollout_policy_path=None, wrapper_class=None, is_OPOLO=False):
+    """
+    Helper function to multiprocess training
+    and log the progress.
+
+    :param env_id: (str)
+    :param rank: (int)
+    :param seed: (int)
+    :param log_dir: (str)
+    :param wrapper: (type) a subclass of gym.Wrapper to wrap the original
+                    env with
+    """
+    wrapper_class.append(ATPEnv)
+
+    if log_dir not in ['', None]:
+        os.makedirs(log_dir, exist_ok=True)
+    else:
+        log_dir = None
+
+    def _init():
+        set_global_seeds(seed + rank)
+        env = gym.make(env_id)
+
+        # Dict observation space is currently not supported.
+        # https://github.com/hill-a/stable-baselines/issues/321
+        # We allow a Gym env wrapper (a subclass of gym.Wrapper)
+        if wrapper_class:
+            print(wrapper_class)
+            if type(wrapper_class) == list:
+                for w in wrapper_class:
+                    if w is not None:
+                        if w.__name__ == 'ATPEnv':
+                            env = w(env, rollout_policy_path, seed = seed, is_OPOLO = is_OPOLO)
+                        else:
+                            env = w(env)
+            else:
+                if wrapper_class is not None:
+                    if wrapper_class.__name__ == 'ATPEnv':
+                        env = wrapper_class(env, rollout_policy_path, seed = seed, is_OPOLO = is_OPOLO)
+                    else:
+                        env = wrapper_class(env)
+        logpath = None if rank > 1 else os.path.join(log_dir, 'agent0')
+        env.seed(seed + rank)
+        env = Monitor(env, logpath, allow_early_resets=True)
+        return env
+
+    return _init
 
 def make_env(env_id, rank=0, seed=0, log_dir=None, wrapper_class=None):
     """
@@ -417,22 +467,47 @@ def create_env_(args, hyperparams, n_envs, is_atari, env_wrapper=None, normalize
         if env_wrapper is not None:
             print("Using Predefined Env Wrapper")
         if n_envs == 1:
-            env = make_env_with_log_monitor(
-                args.env,
-                0,
-                args.seed,
-                log_dir=args.log_dir,
-                wrapper_class=[env_wrapper,AbsorbingWrapper] if 'dac' in args.algo else [env_wrapper])
-            env = DummyVecEnv([env])
-        else:
-            # On most env, SubprocVecEnv does not help and is quite memory hungry
-            env = DummyVecEnv([
-                make_env_with_log_monitor(
+            if args.rollout_policy_path is not None:
+                env = make_atp_env_with_log_monitor(
                     args.env,
-                    i,
+                    0,
                     args.seed,
                     log_dir=args.log_dir,
-                    wrapper_class=[env_wrapper,AbsorbingWrapper] if 'dac' in args.algo else [env_wrapper]) for i in range(n_envs)])
+                    rollout_policy_path=args.rollout_policy_path,
+                    wrapper_class=[env_wrapper,AbsorbingWrapper] if 'dac' in args.algo else [env_wrapper],
+                    is_OPOLO = True if 'opolo' in args.algo else False
+                )
+            else: # ORIGINAL
+                env = make_env_with_log_monitor(
+                    args.env,
+                    0,
+                    args.seed,
+                    log_dir=args.log_dir,
+                    wrapper_class=[env_wrapper,AbsorbingWrapper] if 'dac' in args.algo else [env_wrapper])
+            env = DummyVecEnv([env])
+        else:
+            if args.rollout_policy_path is not None:
+                env = DummyVecEnv([
+                    make_atp_env_with_log_monitor(
+                        args.env,
+                        i,
+                        args.seed,
+                        log_dir=args.log_dir,
+                        rollout_policy_path=args.rollout_policy_path,
+                        wrapper_class=[env_wrapper, AbsorbingWrapper] if 'dac' in args.algo else [env_wrapper],
+                        is_OPOLO=True if 'opolo' in args.algo else False
+                    ) for i in range(n_envs)],
+                )
+            else: # ORIGINAL
+                # On most env, SubprocVecEnv does not help and is quite memory hungry
+                env = DummyVecEnv([
+                    make_env_with_log_monitor(
+                        args.env,
+                        i,
+                        args.seed,
+                        log_dir=args.log_dir,
+                        wrapper_class=[env_wrapper, AbsorbingWrapper] if 'dac' in args.algo else [env_wrapper]) for i in
+                    range(n_envs)])
         if normalize:
             if args.verbose > 0:
                 if len(normalize_kwargs) > 0:
@@ -447,7 +522,6 @@ def create_env_(args, hyperparams, n_envs, is_atari, env_wrapper=None, normalize
         print("Stacking {} frames".format(n_stack))
         del hyperparams['frame_stack']
     return env, hyperparams
-
 
 def create_test_env(args, hyperparams):
     env_wrapper = get_wrapper_class(hyperparams)
@@ -466,6 +540,29 @@ def create_test_env(args, hyperparams):
         env = env()
     else:
         raise ValueError("Multi environment is not supported yet")
+    return env
+
+def create_real_env(args, hyperparams):
+    env_wrapper = get_wrapper_class(hyperparams)
+    print("Creating Target environment for {} ....".format(args.real_env))
+    if env_wrapper is not None:
+        print("Using Predefined Env Wrapper")
+    set_global_seeds(args.seed)
+    env = gym.make(args.real_env)
+    env.seed(args.seed)
+
+    # Dict observation space is currently not supported.
+    # https://github.com/hill-a/stable-baselines/issues/321
+    # We allow a Gym env wrapper (a subclass of gym.Wrapper)
+    if env_wrapper:
+        print(env_wrapper)
+        if type(env_wrapper) == list:
+            for w in env_wrapper:
+                if w is not None:
+                    env = w(env)
+        else:
+            if env_wrapper is not None:
+                env = env_wrapper(env)
     return env
 
 def create_env(args, hyperparams, is_atari, n_timesteps):

@@ -30,6 +30,7 @@ class ExpertDataset(object):
     :param sequential_preprocessing: (bool) Do not use subprocess to preprocess
         the data (slower but use less memory for the CI)
     """
+    # EXCLUDED_KEYS = {'dataloader', 'train_loader', 'val_loader'}
 
     def __init__(self, expert_path=None, traj_data=None, train_fraction=0.7, batch_size=64,
                  traj_limitation=-1, randomize=True, verbose=1, sequential_preprocessing=False, ob_flatten=True, sample_rate=1):

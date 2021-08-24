@@ -5,6 +5,8 @@ import os
 from collections import OrderedDict
 from pprint import pprint
 import warnings
+# warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore')
 import importlib
 from settings import CONFIGS
 import tensorflow as tf
@@ -29,14 +31,17 @@ from stable_baselines.common import set_global_seeds
 from stable_baselines.ppo2.ppo2 import constfn
 from stable_baselines.results_plotter import load_results, ts2xy
 
-from utils import create_env, create_test_env, ALGOS, linear_schedule, get_latest_run_id, get_wrapper_class
+from utils import create_env, create_test_env, create_real_env, ALGOS, linear_schedule, get_latest_run_id, get_wrapper_class
 from utils.noise import LinearNormalActionNoise
 from stable_baselines.gail import generate_expert_traj_mujoco, generate_expert_traj
 from stable_baselines.gail.dataset.dataset import ExpertDataset
 
+from simulation_grounding.atp_envs import ATPEnv
+from simulation_grounding.generate_target_traj import generate_target_traj
+
 
 best_mean_reward, n_steps = -np.inf, 0
-PATH_PREFIX = '..'
+PATH_PREFIX = 'opolo-baselines'
 def is_mujoco(env):
     for name in ['Hopper', 'Half', 'Walker', 'Reacher', 'Ant', 'Humanoid', 'Pendulum', 'Pusher', 'Swimmer', 'Thrower', 'Striker']:
         if name in env:
@@ -74,7 +79,7 @@ def a2c_callback(log_dir, mode, max_score=None):
         :param _locals: (dict)
         :param _globals: (dict)
         """
-        global n_steps, best_mean_reward
+        global n_steps
         # Print stats every 20 calls
         if (n_steps + 1) % 500 == 0:
             # Evaluate policy training performance
@@ -82,14 +87,11 @@ def a2c_callback(log_dir, mode, max_score=None):
             if len(x) > 0:
                 mean_reward = np.mean(y[-100:])
                 print(x[-1], 'timesteps')
-                print("Best mean reward: {:.2f} - Last mean reward per episode: {:.2f}".format(best_mean_reward, mean_reward))
+                print("Last mean reward per episode: {:.2f}".format(mean_reward))
 
-                # New best model, you could save the agent here
-                if mean_reward > best_mean_reward:
-                    best_mean_reward = mean_reward
-                    # Example for saving best model
-                    print("Saving new best model")
-                    _locals['self'].save(os.path.join(log_dir, 'best_model.pkl'))
+                # Save model
+                print("Saving latest model")
+                _locals['self'].save(os.path.join(log_dir, 'latest_model.pkl'))
                 if 'train' in mode and max_score is not None and mean_reward > max_score:
                     print("Stop training.")
                     return False
@@ -115,7 +117,6 @@ def eval_mujoco_model(args, model, env, step=50000):
     for i in range(step):
         #action, _ = model.predict(obs, deterministic=deterministic)
         action, _ = model.predict(obs, deterministic=False)
-
 
         #if args.algo == 'sac':
         #    action = unscale_action(args.env.action_space, action)
@@ -195,7 +196,7 @@ def eval_atari_model(args, model, env, step=30000):
 
 
 def load_expert_hyperparams(args):
-    with open('../hyperparams/{}.yml'.format(args.algo), 'r') as f:
+    with open(PATH_PREFIX + '/hyperparams/{}.yml'.format(args.algo), 'r') as f:
         hyperparams_dict = yaml.load(f)
         if env_id in list(hyperparams_dict.keys()):
             hyperparams = hyperparams_dict[env_id]
@@ -240,32 +241,64 @@ def initiate_hyperparams(args, hyperparams):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--env', type=str, default="PongNoFrameskip-v4", help='environment ID')
+    # parser.add_argument('--env', default='Hopper-v2', help="Name of the simulator environment (Unmodified)")
+    # parser.add_argument('--real_env', default='HopperFrictionModified-v2', help="Name of the Real World environment (Modified)")
+    # parser.add_argument('--rollout_policy_path', default="../simulation_grounding/models/TRPO_initial_policy_steps_Hopper-v2_2000000_.pkl", help="relative path of initial policy trained in sim")
+
+    # parser.add_argument('--env', default='Walker2d-v2', help="Name of the simulator environment (Unmodified)")
+    # parser.add_argument('--real_env', default='Walker2dModified-v2', help="Name of the Real World environment (Modified)")
+    # parser.add_argument('--rollout_policy_path', default="../simulation_grounding/models/TRPO_initial_policy_steps_Walker2d-v2_2000000_.pkl", help="relative path of initial policy trained in sim")
+
+    parser.add_argument('--env', default='InvertedPendulum-v2', help="Name of the simulator environment (Unmodified)")
+    parser.add_argument('--real_env', default='InvertedPendulumModified-v2', help="Name of the Real World environment (Modified)")
+    parser.add_argument('--rollout_policy_path', default="../simulation_grounding/models/TRPO_initial_policy_steps_InvertedPendulum-v2_1000000_.pkl", help="relative path of initial policy trained in sim")
+
     parser.add_argument('-tb', '--tensorboard-log', help='Tensorboard log dir', default='tb_logs', type=str)
     parser.add_argument('-i', '--trained-agent', help='Path to a pretrained agent to continue training',
                         default='', type=str)
-    parser.add_argument('--algo', help='RL Algorithm', default='dqnrrs',
+    # GAIfO
+    parser.add_argument('--algo', help='RL Algorithm', default='trpogaifo',
                         type=str, required=False, choices=list(ALGOS.keys()))
+    # # OPOLO
+    # parser.add_argument('--algo', help='RL Algorithm', default='opolo',
+    #                     type=str, required=False, choices=list(ALGOS.keys()))
+
     parser.add_argument('-n', '--n-timesteps', help='Overwrite the number of timesteps', default=-1,
                         type=int)
     parser.add_argument('--log-interval', help='Override log interval (default: -1, no change)', default=1000,
                         type=int)
     parser.add_argument('-f', '--log-folder', help='Log folder', type=str, default='logs')
-    parser.add_argument('--seed', help='Random generator seed', type=int, default=1)
-    parser.add_argument('--log-dir', help='Log directory', type=str, default='/tmp/logs') # required=True,
+    parser.add_argument('--seed', help='Random generator seed', type=int, default=2)
+    parser.add_argument('--log-dir', help='Log directory', type=str, default='opolo-baselines/run/test/logs') # required=True,
     parser.add_argument('-optimize', '--optimize-hyperparameters', action='store_true', default=False,
                         help='Run hyperparameters search')
     parser.add_argument('--n-jobs', help='Number of parallel threads when optimizing hyperparameters', type=int, default=6)
-    parser.add_argument('--n-episodes', help='Number of expert episodes', type=int, default=1)
+    parser.add_argument('--n-episodes', help='Number of expert episodes', type=int, default=None)
+    parser.add_argument('--n-transitions', help='Number of expert transitions', type=int, default=None)
     parser.add_argument('--no-render', help='If render', default=True)
     parser.add_argument('--verbose', help='Verbose mode (0: no output, 1: INFO)', default=1,
                         type=int)
     parser.add_argument('--gym-packages', type=str, nargs='+', default=[], help='Additional external Gym environemnt package modules to import (e.g. gym_minigrid)')
+
+    # GAIfO
     parser.add_argument(
         '--task',
         type=str,
-        default='train')
+        default='trpo-gaifo')
     args = parser.parse_args()
+
+    # # OPOLO
+    # parser.add_argument(
+    #     '--task',
+    #     type=str,
+    #     default='td3-opolo-idm-decay-reg')
+    # args = parser.parse_args()
+
+    # our case    
+    args.env = "FetchReach-v1"
+    args.real_env = "FetchReach-v1"
+    args.rollout_policy_path = PATH_PREFIX + "/run/test.zip"
+    args.n_episodes = 50
 
     # extend log directory with experiment details
     new_log_dir = os.path.join(args.log_dir, args.task, args.algo, args.env, 'rank{}'.format(args.seed))
@@ -285,6 +318,8 @@ if __name__ == '__main__':
         except IndexError:
             closest_match = "'no close match found...'"
         raise ValueError('{} not found in gym registry, you maybe meant {}?'.format(env_id, closest_match))
+
+    ################################################
 
     set_global_seeds(args.seed)
 
@@ -339,12 +374,35 @@ if __name__ == '__main__':
     config['use_hindsight'] = 'hindsight' in args.task # use ground-truth teacher action for BC
     config['sparse'] = False
 
-    data_save_path = '../expert_logs'
-    max_score = config['optimal_score']
-    data_save_dir = os.path.join(data_save_path, "expert_data_no_img_{}_scores_{}_episodes_{}.npz".format(args.env.split('-')[0], max_score, config['n_episodes']))
-    config['expert_data_path'] = data_save_dir
+    config['double_discriminator'] = False
 
-    #args.log_dir = args.log_dir.replace('eval-bc', 'eval-bc-episode-{}'.format(config['n_episodes']))
+    generate_demo = False
+    if generate_demo:
+        save_path = PATH_PREFIX + '/simulation_grounding/real_traj'
+        if args.n_episodes is not None:
+            data_save_dir = os.path.join(save_path, "{}_episodes_{}".format(args.real_env,args.n_episodes))
+        else:
+            data_save_dir = os.path.join(save_path, "{}_transitions_{}".format(args.real_env, args.n_transitions))
+        real_env = create_real_env(args, hyperparams)
+        traj = generate_target_traj(args.rollout_policy_path,
+                                    real_env,
+                                    data_save_dir,
+                                    args.n_episodes,
+                                    args.n_transitions,
+                                    args.seed)
+        data_save_dir = data_save_dir + ".npz"
+        config['expert_data_path'] = data_save_dir
+    else:
+        data_save_path = PATH_PREFIX + '/simulation_grounding/real_traj'
+        # max_score = config['optimal_score']
+        if args.n_episodes is not None:
+            data_save_dir = os.path.join(data_save_path, "{}_episodes_{}".format(args.real_env,args.n_episodes))
+        else:
+            data_save_dir = os.path.join(data_save_path, "{}_transitions_{}".format(args.real_env, args.n_transitions))
+        # data_save_dir = data_save_dir + ".npz"
+        data_save_dir = "opolo-baselines/simulation_grounding/real_traj/Uarm_data.npz"
+        config['expert_data_path'] = data_save_dir
+
     os.makedirs(args.log_dir, exist_ok=True)
     env, hyperparams, normalize = create_env(args, hyperparams, is_atari, n_timesteps)
 
@@ -362,7 +420,7 @@ if __name__ == '__main__':
 
     # Train an agent from scratch
     policy = 'MlpPolicy'
-    policy_kwargs = dict(act_fun=tf.nn.tanh, layers=[64, 64, 64])
+    # policy_kwargs = dict(act_fun=tf.nn.tanh, layers=[64, 64, 64])
     kwargs = {}
     if args.log_interval > -1:
         kwargs = {'log_interval': args.log_interval}
@@ -381,7 +439,7 @@ if __name__ == '__main__':
     ##############################################################
     # begin learning, saving best model through each call back
     ##############################################################
-    cb_func = a2c_callback(args.log_dir, args.task)
+    cb_func = a2c_callback(args.log_dir, args.task) #<-------------------------------- MODIFIED 2021.03.11
     if 'eval' in args.task:
         model_file = os.path.join("{}/{}".format(args.log_dir.replace('eval-',''), "best_model.pkl"))
         assert os.path.isfile(model_file), \
@@ -394,21 +452,25 @@ if __name__ == '__main__':
         if is_mujoco(args.env):
             eval_mujoco_model(args, model, env)
     else:
+        # if True:
         if need_demo(config):
             print(data_save_dir)
             assert os.path.isfile(data_save_dir)
-            print("Loading Demo Data: {}".format(data_save_dir))
+            print("Loading Demo Data: {}".format(data_save_dir))    
         model = ALGOS[args.algo](
-            policy,
+            'MlpPolicy',
             env=env,
             tensorboard_log=tensorboard_log,
             verbose=args.verbose,
             config=config,
+            seed=args.seed,
             **hyperparams)
         model.learn(
             n_timesteps,
             callback=cb_func,
             **kwargs)
+        model.save(os.path.join(args.log_dir, 'action_transformer_policy1.pkl'))
+
         with open(os.path.join(args.log_dir, 'config.yml'), 'w') as f:
             yaml.dump(saved_hyperparams, f)
 

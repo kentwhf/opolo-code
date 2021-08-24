@@ -111,7 +111,8 @@ class TRPO(ActorCriticRLModel):
 
     def setup_model(self):
         # prevent import loops
-        from stable_baselines.gail.adversary import TransitionClassifier
+        if self.using_gail:
+            from stable_baselines.gail.adversary import TransitionClassifier
 
         with SetVerbosity(self.verbose):
 

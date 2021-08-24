@@ -1,0 +1,278 @@
+Goal Location Identified:
+
+RESET RETURNS:  {'observation': array([1.2315728 , 0.74932209, 0.53179733, 0.        , 0.        ,0.        , 0.        , 0.        , 0.        , 0.        ]), 'achieved_goal': array([1.2315728 , 0.74932209, 0.53179733]), 'desired_goal': array([0.90563007, 1.19503078, 0.32      ])}
+last pos x, y, z:  [216.8, -0.35, 46.72]
+ACTION start x, y, z:  [-0.9999999   1.         -0.99998987 -1.        ]
+ACTION after scale x, y, z:  [ -9.614999   9.615    -11.089888  -1.      ]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [207.18, 9.26, 35.63]
+achieved goal and desired goal: [207.18, 9.26, 35.63] [ 51.78760501 218.18672848   0.        ]
+diff:  155.3923949931041 208.926728483879 35.63
+reward:  0.0
+Distance history:  262.80538654424373
+Success history:  0.0 
+epoch:  0 average score: 0.1
+
+last pos x, y, z:  [207.18, 9.26, 35.63]
+ACTION start x, y, z:  [-0.99999666  1.         -0.9934443  -1.        ]
+ACTION after scale x, y, z:  [ -9.614968   9.615    -11.017298  -1.      ]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [197.57, 18.87, 24.61]
+achieved goal and desired goal: [197.57, 18.87, 24.61] [ 51.78760501 218.18672848   0.        ]
+diff:  145.78239499310408 199.316728483879 24.61
+reward:  0.1
+Distance history:  248.16389149802143
+Success history:  0.0
+epoch:  1
+score: 0.1 average score: 0.1
+
+last pos x, y, z:  [197.57, 18.87, 24.61]
+ACTION start x, y, z:  [-0.999937   1.         0.1635369 -0.9969024]
+ACTION after scale x, y, z:  [-9.614394   9.615      1.8136243 -0.9969024]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [187.96, 28.48, 26.42]
+achieved goal and desired goal: [187.96, 28.48, 26.42] [ 51.78760501 218.18672848   0.        ]
+diff:  136.1723949931041 189.706728483879 26.42
+reward:  0.1
+Distance history:  235.0097453090279
+Success history:  0.0
+epoch:  2
+score: 0.2 average score: 0.1
+
+last pos x, y, z:  [187.96, 28.48, 26.42]
+ACTION start x, y, z:  [-9.9983186e-01  1.0000000e+00  7.2622299e-04 -9.2223054e-01]
+ACTION after scale x, y, z:  [-9.6133833e+00  9.6149998e+00  8.0538131e-03 -9.2223054e-01]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [178.35, 38.09, 26.43]
+achieved goal and desired goal: [178.35, 38.09, 26.43] [ 51.78760501 218.18672848   0.        ]
+diff:  126.56239499310408 180.096728483879 26.43
+reward:  0.1
+Distance history:  221.7011870446041
+Success history:  0.0
+epoch:  3
+score: 0.30000000000000004 
+average score: 0.10000000000000002
+
+last pos x, y, z:  [178.35, 38.09, 26.43]
+ACTION start x, y, z:  [-0.9992776   1.          0.2604494   0.61230254]
+ACTION after scale x, y, z:  [-9.608054    9.615       2.8883839   0.61230254]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [168.74, 47.7, 29.32]
+achieved goal and desired goal: [168.74, 47.7, 29.32] [ 51.78760501 218.18672848   0.        ]
+diff:  116.9523949931041 170.486728483879 29.32
+reward:  0.1
+Distance history:  208.81391161452564
+Success history:  0.0
+epoch:  4
+score: 0.4 a
+verage score: 0.1
+
+last pos x, y, z:  [168.74, 47.7, 29.32]
+ACTION start x, y, z:  [-0.996567    1.         -0.09368581  0.97654784]
+ACTION after scale x, y, z:  [-9.581992    9.615      -1.0389756   0.97654784]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [159.16, 57.31, 28.28]
+achieved goal and desired goal: [159.16, 57.31, 28.28] [ 51.78760501 218.18672848   0.        ]
+diff:  107.37239499310408 160.876728483879 28.28
+reward:  0.1
+Distance history:  195.47355671351275
+Success history:  0.0
+epoch:  5
+score: 0.5 average score: 0.1
+
+last pos x, y, z:  [159.16, 57.31, 28.28]
+ACTION start x, y, z:  [-0.9849622  1.         0.3839488  0.9996817]
+ACTION after scale x, y, z:  [-9.470412   9.615      4.2579923  0.9996817]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [149.69, 66.92, 32.54]
+achieved goal and desired goal: [149.69, 66.92, 32.54] [ 51.78760501 218.18672848   0.        ]
+diff:  97.90239499310408 151.26672848387898 32.54
+reward:  0.1
+Distance history:  183.09930008495755
+Success history:  0.0
+epoch:  6
+score: 0.6 average score: 0.09999999999999999
+
+last pos x, y, z:  [149.69, 66.92, 32.54]
+ACTION start x, y, z:  [-0.94973695  1.         -0.21242046  0.9999516 ]
+ACTION after scale x, y, z:  [-9.131721   9.615     -2.355743   0.9999516]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [140.56, 76.53, 30.18]
+achieved goal and desired goal: [140.56, 76.53, 30.18] [ 51.78760501 218.18672848   0.        ]
+diff:  88.77239499310409 141.656728483879 30.18
+reward:  0.1
+Distance history:  169.8764234305841
+Success history:  0.0
+epoch:  7
+score: 0.7 average score: 0.09999999999999999
+
+last pos x, y, z:  [140.56, 76.53, 30.18]
+ACTION start x, y, z:  [-0.849328    1.          0.49691308  0.9999993 ]
+ACTION after scale x, y, z:  [-8.166288   9.615      5.510766   0.9999993]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [132.39, 86.14, 35.69]
+achieved goal and desired goal: [132.39, 86.14, 35.69] [ 51.78760501 218.18672848   0.        ]
+diff:  80.60239499310407 132.046728483879 35.69
+reward:  0.1
+Distance history:  158.76668631019427
+Success history:  0.0
+epoch:  8
+score: 0.7999999999999999 average score: 0.09999999999999999
+
+last pos x, y, z:  [132.39, 86.14, 35.69]
+ACTION start x, y, z:  [-0.786244   1.        -0.6801368  0.9999995]
+ACTION after scale x, y, z:  [-7.559736   9.615     -7.542717   0.9999995]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [124.83, 95.75, 28.15]
+achieved goal and desired goal: [124.83, 95.75, 28.15] [ 51.78760501 218.18672848   0.        ]
+diff:  73.0423949931041 122.436728483879 28.15
+reward:  0.1
+Distance history:  145.32159663368603
+Success history:  0.0
+epoch:  9
+score: 0.8999999999999999 average score: 0.09999999999999999
+
+last pos x, y, z:  [124.83, 95.75, 28.15]
+ACTION start x, y, z:  [-0.79893947  1.          0.6261172   1.        ]
+ACTION after scale x, y, z:  [-7.6818027  9.615      6.94364    1.       ]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [117.15, 105.36, 35.09]
+achieved goal and desired goal: [117.15, 105.36, 35.09] [ 51.78760501 218.18672848   0.        ]
+diff:  65.36239499310409 112.826728483879 35.09
+reward:  0.1
+Distance history:  135.03118691476246
+Success history:  0.0
+epoch:  10
+score: 0.9999999999999999 average score: 0.09999999999999999
+
+last pos x, y, z:  [117.15, 105.36, 35.09]
+ACTION start x, y, z:  [-0.70032036  1.         -0.90798527  1.        ]
+ACTION after scale x, y, z:  [ -6.73358    9.615    -10.069556   1.      ]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [110.42, 114.97, 25.02]
+achieved goal and desired goal: [110.42, 114.97, 25.02] [ 51.78760501 218.18672848   0.        ]
+diff:  58.63239499310409 103.216728483879 25.02
+reward:  0.1
+Distance history:  121.31550264307599
+Success history:  0.0
+epoch:  11
+score: 1.0999999999999999 average score: 0.09999999999999999
+
+last pos x, y, z:  [110.42, 114.97, 25.02]
+ACTION start x, y, z:  [-0.74425757  1.          0.6645045   1.        ]
+ACTION after scale x, y, z:  [-7.1560364  9.615      7.369355   1.       ]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [103.26, 124.58, 32.39]
+achieved goal and desired goal: [103.26, 124.58, 32.39] [ 51.78760501 218.18672848   0.        ]
+diff:  51.472394993104096 93.606728483879 32.39
+reward:  0.1
+Distance history:  111.62768099257805
+Success history:  0.0
+epoch:  12
+score: 1.2 average score: 0.09999999999999999
+
+last pos x, y, z:  [103.26, 124.58, 32.39]
+ACTION start x, y, z:  [-0.5665999  1.        -0.9991328  1.       ]
+ACTION after scale x, y, z:  [ -5.447858   9.615    -11.080383   1.      ]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [97.81, 134.19, 21.31]
+achieved goal and desired goal: [97.81, 134.19, 21.31] [ 51.78760501 218.18672848   0.        ]
+diff:  46.02239499310409 83.996728483879 21.31
+reward:  0.1
+Distance history:  98.12047358678912
+Success history:  0.0
+epoch:  13
+score: 1.3 average score: 0.1
+
+last pos x, y, z:  [97.81, 134.19, 21.31]
+ACTION start x, y, z:  [-0.65222394  1.         -0.29209262  1.        ]
+ACTION after scale x, y, z:  [-6.2711334  9.615     -3.2393072  1.       ]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [91.54, 143.8, 18.07]
+achieved goal and desired goal: [91.54, 143.8, 18.07] [ 51.78760501 218.18672848   0.        ]
+diff:  39.7523949931041 74.38672848387898 18.07
+reward:  0.1
+Distance history:  86.25638053049815
+Success history:  0.0
+epoch:  14
+score: 1.4000000000000001 average score: 0.1
+
+last pos x, y, z:  [91.54, 143.8, 18.07]
+ACTION start x, y, z:  [-0.60834605  1.         -0.7895669   1.        ]
+ACTION after scale x, y, z:  [-5.8492475  9.615     -8.756297   1.       ]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [85.69, 153.41, 9.31]
+achieved goal and desired goal: [85.69, 153.41, 9.31] [ 51.78760501 218.18672848   0.        ]
+diff:  33.90239499310409 64.776728483879 9.31
+reward:  0.43333333333333335
+Distance history:  73.70259859287614
+Success history:  0.0
+epoch:  15
+score: 1.8333333333333335 average score: 0.12222222222222223
+
+last pos x, y, z:  [85.69, 153.41, 9.31]
+ACTION start x, y, z:  [-0.5960055  1.         0.831743   1.       ]
+ACTION after scale x, y, z:  [-5.7305927  9.615      9.22403    1.       ]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [79.96, 163.02, 18.53]
+achieved goal and desired goal: [79.96, 163.02, 18.53] [ 51.78760501 218.18672848   0.        ]
+diff:  28.172394993104085 55.166728483878984 18.53
+reward:  0.1
+Distance history:  64.65611085784158
+Success history:  0.0
+epoch:  16
+score: 1.9333333333333336 average score: 0.12083333333333335
+
+last pos x, y, z:  [79.96, 163.02, 18.53]
+ACTION start x, y, z:  [-0.3564037  1.        -0.9999972  1.       ]
+ACTION after scale x, y, z:  [ -3.4268217   9.615     -11.089969    1.       ]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [76.53, 172.63, 7.44]
+achieved goal and desired goal: [76.53, 172.63, 7.44] [ 51.78760501 218.18672848   0.        ]
+diff:  24.742394993104092 45.556728483879 7.44
+reward:  0.43333333333333335
+Distance history:  52.373229995376974
+Success history:  0.0
+epoch:  17
+score: 2.366666666666667 average score: 0.13921568627450984
+
+last pos x, y, z:  [76.53, 172.63, 7.44]
+ACTION start x, y, z:  [-0.5986335   1.         -0.92952293  0.9999999 ]
+ACTION after scale x, y, z:  [ -5.7558613   9.615     -10.30841     0.9999999]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [70.77, 182.24, 0.0]
+achieved goal and desired goal: [70.77, 182.24, 0.0] [ 51.78760501 218.18672848   0.        ]
+diff:  18.982394993104087 35.946728483878985 0.0
+reward:  0.43333333333333335
+Distance history:  40.65093613150797
+Success history:  0.0
+epoch:  18
+score: 2.8000000000000007 average score: 0.15555555555555559
+
+last pos x, y, z:  [70.77, 182.24, 0.0]
+ACTION start x, y, z:  [-0.65939885  1.          0.72437656  0.99999094]
+ACTION after scale x, y, z:  [-6.34012     9.615       8.033336    0.99999094]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [64.43, 191.85, 8.03]
+achieved goal and desired goal: [64.43, 191.85, 8.03] [ 51.78760501 218.18672848   0.        ]
+diff:  12.642394993104098 26.336728483879 8.03
+reward:  1.
+Distance history:  30.29743088770444
+Success history:  0.0
+epoch:  19
+score: 3.2333333333333343 average score: 0.17017543859649129
+
+last pos x, y, z:  [64.43, 191.85, 8.03]
+ACTION start x, y, z:  [-0.377733    0.9999995  -0.9999989   0.99999213]
+ACTION after scale x, y, z:  [-6.34012     9.615       8.033336    0.99999094]
+desired goal:  [ 51.78760501 218.18672848   0.        ]
+achieved goal:  [64.43, 191.85, 8.03]
+achieved goal and desired goal: [60.8, 201.46, 0.0] [ 51.78760501 218.18672848   0.        ]
+diff:  9.012394993104088 16.726728483878986 0.0
+reward:  0.8666666666666666
+Distance history:  19.000176559314816
+Success history:  0.0
+epoch:  20
+score: 4.1000000000000005 average score: 0.20500000000000002
+
+

@@ -1040,6 +1040,23 @@ class DDPG(OffPolicyRLModel):
         observation = np.array(observation)
         vectorized_env = self._is_vectorized_observation(observation, self.observation_space)
 
+        # full length
+        if self.observation_space.shape[0] == 16:
+            try:
+                observation = observation.tolist()
+                observation = np.concatenate((observation["achieved_goal"],
+                                    observation["observation"],
+                                    observation["desired_goal"]))        
+            except TypeError:
+                observation = np.asarray(observation)
+
+        # Reduced length
+        if self.observation_space.shape[0] == 3:
+            try:
+                observation = observation[:3]      
+            except TypeError:
+                observation = np.asarray(observation)
+
         observation = observation.reshape((-1,) + self.observation_space.shape)
         actions, _, = self._policy(observation, apply_noise=not deterministic, compute_q=False)
         actions = actions.reshape((-1,) + self.action_space.shape)  # reshape to the correct action shape

@@ -36,6 +36,10 @@ class TimeFeatureWrapper(gym.Wrapper):
         learning a deterministic pre-defined sequence of actions.
     """
     def __init__(self, env, max_steps=1000, test_mode=False):
+        # print(type(env.observation_space))
+        # print(type(gym.spaces.Box))
+        # exit()
+
         assert isinstance(env.observation_space, gym.spaces.Box)
         # Add a time feature to the observation
         low, high = env.observation_space.low, env.observation_space.high
