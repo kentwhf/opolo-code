@@ -162,7 +162,25 @@ def generate_target_traj(rollout_policy_path, env, save_path=None, n_episodes=No
     }
 
     for key, val in numpy_dict.items():
-        print(key, val.shape)
+        numpy_dict[key] = np.asarray(val)
+        # print(key, val.shape)
+    # exit()
+
+    # Flat the (reduced) array
+    from itertools import chain
+    obs = np.asarray([list(chain.from_iterable(ele.values())) for ele in numpy_dict['obs'][:,0]])
+    act = numpy_dict['obs'][:, 1:]
+    # numpy_dict['obs'] = np.concatenate((obs,act), axis=1).astype('float32')
+    achieved_goal = obs[:, :3]
+    # desired_goal = obs[:, -3:]
+    numpy_dict['obs'] = np.concatenate((achieved_goal, act), axis=1).astype('float32')
+
+    obs = np.asarray([list(chain.from_iterable(ele.values())) for ele in numpy_dict['next_obs'][:,0]])
+    act = numpy_dict['next_obs'][:, 1:]
+    # numpy_dict['next_obs'] = np.concatenate((obs,act), axis=1).astype('float32')
+    achieved_goal = obs[:, :3]
+    # desired_goal = obs[:, -3:]
+    numpy_dict['next_obs'] = np.concatenate((achieved_goal, act), axis=1).astype('float32')
 
     if save_path is not None:
         np.savez(save_path, **numpy_dict)

@@ -87,7 +87,30 @@ class DummyVecEnv(VecEnv):
     def _save_obs(self, env_idx, obs):
         for key in self.keys:
             if key is None:
-                self.buf_obs[key][env_idx] = obs
+
+                # print(obs.shape)
+
+                from itertools import chain
+                act = obs[1:].reshape(1, -1)
+                obs = np.asarray([list(chain.from_iterable(obs[0].values()))])
+
+                # print(obs.shape)
+                # print(act.shape)
+                
+                obs = np.concatenate((obs,act), axis=1).astype('float32').reshape(-1)
+
+                # print(obs.shape)
+                # print(self.buf_obs[key][env_idx].shape)
+                # print(self.buf_obs[key][env_idx])
+                # print(temp.shape)
+                
+                # print(self.buf_obs[key][env_idx].shape)
+                # quit()
+
+                # l = obs.shape[1]
+                # (self.buf_obs[key][env_idx])[:, :l] = obs
+
+                # self.buf_obs[key][env_idx] = obs
             else:
                 self.buf_obs[key][env_idx] = obs[key]
 

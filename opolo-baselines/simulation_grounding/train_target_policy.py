@@ -17,7 +17,7 @@ except ImportError:
 import numpy as np
 import yaml
 
-from stable_baselines import TRPO, OPOLO, TRPOGAIFO, PPO2
+from stable_baselines import TRPO, OPOLO, TRPOGAIFO, PPO2, HER
 from stable_baselines.common import set_global_seeds
 from stable_baselines.results_plotter import load_results, ts2xy
 from stable_baselines.common.vec_env import DummyVecEnv
@@ -108,9 +108,16 @@ if __name__ == '__main__':
     parser.add_argument('--seed', help='Random generator seed', type=int, default=1)
 
     parser.add_argument('--log-interval', help='Override log interval (default: -1, no change)', default=1000, type=int)
-    parser.add_argument('--log-dir', help='Log directory', type=str, default='../simulation_grounding/target_policies/') # required=True,
+    parser.add_argument('--log-dir', help='Log directory', type=str, default='opolo-baselines/simulation_grounding/target_policies/') # required=True,
     parser.add_argument('--verbose', help='Verbose mode (0: no output, 1: INFO)', default=1,type=int)
     args = parser.parse_args()
+
+    PATH_PREFIX = 'opolo-baselines'
+    args.env = "FetchReach-v1"
+    args.real_env = "FetchReach-v1"
+    # her rollout policy and real env
+    args.rollout_policy_path = PATH_PREFIX + "/run/test.zip"
+    args.atp_policy_path = PATH_PREFIX + "/run/test/logs/trpo-gaifo/trpogaifo/FetchReach-v1/rank1/action_transformer_policy1.pkl"
 
     # extend log directory with experiment details
     new_log_dir = os.path.join(args.log_dir, args.env, args.ground_algo, 'rank{}'.format(args.seed))
@@ -127,7 +134,7 @@ if __name__ == '__main__':
     # Load model
     #####################################
     print('LOADING -PRETRAINED- INITIAL POLICY')
-    with open('../hyperparams/trpo.yml') as file:
+    with open('opolo-baselines/hyperparams/her.yml') as file:
         policy_params = yaml.load(file, Loader=yaml.FullLoader)
 
     print('Using TRPO as the Target Policy Algo')
@@ -195,24 +202,45 @@ if __name__ == '__main__':
     cb_func = eval_real_callback(log_dir=args.log_dir, eval_real_env = real_callback_env, eval_grnd_env = grnd_eval_env)
 
     ##### Load source policy
-    model = TRPO.load(
-        args.rollout_policy_path,
-        seed=args.seed,
-        env=DummyVecEnv([lambda:grnd_env]),
-        verbose=args.verbose,
-        # disabled tensorboard temporarily
-        # tensorboard_log=None,
-        tensorboard_log= tensorboard_log,
-        timesteps_per_batch=policy_params['timesteps_per_batch'],
-        lam=policy_params['lam'],
-        max_kl=policy_params['max_kl'],
-        gamma=policy_params['gamma'],
-        vf_iters=policy_params['vf_iters'],
-        vf_stepsize=policy_params['vf_stepsize'],
-        entcoeff=policy_params['entcoeff'],
-        cg_damping=policy_params['cg_damping'],
-        cg_iters=policy_params['cg_iters']
-    )
+
+    # model = HER.load(
+    #     args.rollout_policy_path,
+    #     seed=args.seed,
+    #     env=DummyVecEnv([lambda:grnd_env]),
+    #     verbose=args.verbose,
+    #     # disabled tensorboard temporarily
+    #     # tensorboard_log=None,
+    #     tensorboard_log=tensorboard_log,
+    #     n_timesteps=policy_params['n_timesteps'],
+    #     policy=policy_params['policy'],
+    #     model_class=DDPG,
+    #     n_sampled_goal=policy_params['n_sampled_goal'],
+    #     goal_selection_strategy=policy_params['goal_selection_strategy'],
+    #     buffer_size=policy_params['buffer_size'],
+    #     batch_size=policy_params['batch_size'],
+    #     gamma=policy_params['gamma'],
+    #     random_exploration=policy_params['random_exploration'],
+    #     actor_lr=policy_params['actor_lr'],
+    #     critic_lr=policy_params['critic_lr'],
+    #     noise_typer=policy_params['noise_type'],
+    #     noise_std=policy_params['noise_std'],
+    #     normalize_observations=policy_params['normalize_observations'], 
+    #     normalize_returns=policy_params['normalize_returns'],
+    #     # policy_kwargs=policy_params['policy_kwargs']ss
+
+    #     # timesteps_per_batch=policy_params['timesteps_per_batch'],
+    #     # lam=policy_params['lam'],
+    #     # max_kl=policy_params['max_kl'],
+    #     # gamma=policy_params['gamma'],
+    #     # vf_iters=policy_params['vf_iters'],
+    #     # vf_stepsize=policy_params['vf_stepsize'],
+    #     # entcoeff=policy_params['entcoeff'],
+    #     # cg_damping=policy_params['cg_damping'],
+    #     # cg_iters=policy_params['cg_iters']
+    # )
+
+    from stable_baselines.ddpg import DDPG
+    model = HER.load(args.rollout_policy_path, env=grnd_env, model_class=DDPG, seed=args.seed)
 
     ##### Learn policy
     n_timesteps = int(policy_params['n_timesteps'])
@@ -222,6 +250,8 @@ if __name__ == '__main__':
         reset_num_timesteps=True,
         **kwargs)
     model.save(os.path.join(args.log_dir, 'target_policy.pkl'))
+
+    # model = HER.load(os.path.join(args.log_dir, 'target_policy.pkl'), env=grnd_env, seed=args.seed)
 
     with open(os.path.join(args.log_dir, 'config.yml'), 'w') as f:
         yaml.dump(policy_params, f)

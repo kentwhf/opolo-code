@@ -30,6 +30,9 @@ CONFIGS = {
 
     'Humanoid-v2': {
         'optimal_score': 6000
-    }
+    },
 
+    'FetchReach-v1': {
+        'optimal_score': 0
     }
+}

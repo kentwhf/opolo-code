@@ -1,3 +1,4 @@
+from cloudpickle.cloudpickle import instance
 import gym
 from gym import spaces
 import numpy as np
@@ -5,6 +6,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import mujoco_py
 from stable_baselines import TRPO, PPO2, SAC
+
+from stable_baselines import HER
+from gym import spaces
+
 from simulation_grounding import *
 from stable_baselines.common.math_util import unscale_action, scale_action
 
@@ -40,24 +45,33 @@ def get_parent_env(env_name):
         'AntPyBulletEnv-v0': 'AntPyBulletEnv-v0',
         'AntModifiedBulletEnv-v0': 'AntPyBulletEnv-v0',
         'MinitaurBulletEnv-v0': 'MinitaurBulletEnv-v0',
+        'FetchReach-v1': 'FetchReach-v1'
     }
 
     if env_name not in parent_env_dict.keys():
-        raise ValueError('The environment has not been added to the mapping yet. Please check scripts/utils/get_parent_env.py')
+        raise ValueError(
+            'The environment has not been added to the mapping yet. Please check scripts/utils/get_parent_env.py')
 
     return parent_env_dict[env_name]
 
-def set_rollout_policy(rollout_policy_path, seed=None):
-    if 'TRPO' in rollout_policy_path:
-        algo = TRPO
-    elif 'PPO2' in rollout_policy_path:
-        algo = PPO2
-    elif 'SAC' in rollout_policy_path:
-        algo = SAC
-    else:
-        raise NotImplementedError("Algorithm for rollout policy is not supported yet")
 
-    return algo.load(rollout_policy_path, seed = seed)
+def set_rollout_policy(rollout_policy_path, seed=None):
+    # if 'TRPO' in rollout_policy_path:
+    #     algo = TRPO
+    # elif 'PPO2' in rollout_policy_path:
+    #     algo = PPO2
+    # elif 'SAC' in rollout_policy_path:
+    #     algo = SAC
+    # else:
+    #     raise NotImplementedError("Algorithm for rollout policy is not supported yet")
+
+    from gym.envs.robotics.fetch.reach import FetchReachEnv
+    # environment = gym.make('FetchReach-v1')
+    environment = FetchReachEnv()
+
+    return HER.load(rollout_policy_path, env=environment, seed=seed)
+    # return TRPO.load(rollout_policy_path, seed=seed)
+
 
 def collect_trajectories(env, policy, limit_trans_count, deterministic, transition_errors=False, grounded_env=None):
     Ts = []  # Initialize list of trajectories
@@ -70,21 +84,45 @@ def collect_trajectories(env, policy, limit_trans_count, deterministic, transiti
     while True:
         done = False
         obs = env.reset()
+
+        if isinstance(policy, HER):
+            obs = np.concatenate([obs["achieved_goal"],
+                                  obs["observation"],
+                                  obs["desired_goal"]])
+
         if transition_errors: grounded_env.reset()
         Ts.append(obs)
         epi_rew = 0
         while not done:
             if transition_errors: grounded_env.reset_state_to_real(env.unwrapped.sim.get_state(), obs)
 
+            # try:
             action, _ = policy.predict(obs, deterministic=deterministic)
+            # except ValueError: 
+            #     from stable_baselines.her import GoalSelectionStrategy, HERGoalEnvWrapper
+            #     temp_policy = HERGoalEnvWrapper(grounded_env)
+            #     action, _ = policy.predict(obs, deterministic=deterministic)
+
             # clip action within range
             action = np.clip(action, -action_lim, action_lim)
             obs, rew, done, _ = env.step(action)
             epi_rew += rew
+
+            if isinstance(policy, HER):
+                obs = np.concatenate([obs["achieved_goal"],
+                                        obs["observation"],
+                                        obs["desired_goal"]])
+            
             Ts.append(obs)
 
             if transition_errors:
                 grounded_obs, _, done_grounded, _ = grounded_env.step(action)
+
+                if isinstance(policy, HER):
+                    grounded_obs = np.concatenate([grounded_obs["achieved_goal"],
+                                                    grounded_obs["observation"],
+                                                    grounded_obs["desired_goal"]])
+                
                 l2_error_list.append(np.linalg.norm(grounded_obs - obs))
 
             transition_count += 1
@@ -115,11 +153,24 @@ class ATPEnv(gym.Wrapper):
         super(ATPEnv, self).__init__(env)
         self.rollout_policy = set_rollout_policy(rollout_policy_path, seed = seed)
 
-        # Set range of transformed action
-        low = np.append(self.env.observation_space.low,
-                        self.env.action_space.low)
-        high = np.append(self.env.observation_space.high,
-                         self.env.action_space.high)
+        # Dimension concatenation and reduction
+        # low = np.concatenate([self.env.observation_space["achieved_goal"].low,
+        #                       self.env.observation_space["observation"].low,
+        #                       self.env.observation_space["desired_goal"].low,
+        #                       self.env.action_space.low])
+        # high = np.concatenate([self.env.observation_space["achieved_goal"].high,
+        #                        self.env.observation_space["observation"].high,
+        #                        self.env.observation_space["desired_goal"].high,
+        #                        self.env.action_space.high])
+
+
+        low = np.concatenate([self.env.observation_space["achieved_goal"].low,
+                            #   self.env.observation_space["desired_goal"].low,
+                              self.env.action_space.low])
+        high = np.concatenate([self.env.observation_space["achieved_goal"].high,
+                            #    self.env.observation_space["desired_goal"].high,
+                               self.env.action_space.high])
+
         self.obs_size = low.shape[0]
         self.observation_space = spaces.Box(low, high, dtype=np.float32)
         low = self.env.action_space.low
@@ -129,7 +180,7 @@ class ATPEnv(gym.Wrapper):
         self.is_OPOLO = is_OPOLO
         max_act = (self.env.action_space.high - self.env.action_space.low) / 2 * atr
         if is_OPOLO:
-            self.action_space = spaces.Box(-max_act/max_act, max_act/max_act, dtype=np.float32)
+            self.action_space = spaces.Box(-max_act / max_act, max_act / max_act, dtype=np.float32)
         else:
             self.action_space = spaces.Box(-max_act, max_act, dtype=np.float32)
 
@@ -150,7 +201,7 @@ class ATPEnv(gym.Wrapper):
         # create empty list and pad with zeros
         self.prev_frames = []
         self.prev_actions = []
-        for _ in range(self.frames-1):
+        for _ in range(self.frames - 1):
             self.prev_frames.extend(np.zeros_like(np.hstack((self.latest_obs, self.latest_act))))
         self.prev_frames.extend(np.hstack((self.latest_obs, self.latest_act)))
 
@@ -207,12 +258,12 @@ class GroundedEnv(gym.ActionWrapper):
                  data_collection_mode=False,
                  use_deterministic=True,
                  atp_policy_noise=0.0,
-                 scale_atp = False,
+                 scale_atp=False,
                  ):
         super(GroundedEnv, self).__init__(env)
         self.debug_mode = debug_mode
         self.action_tf_policy = action_tf_policy
-        self.alpha=alpha
+        self.alpha = alpha
         self.normalizer = normalizer
         if self.debug_mode:
             self.transformed_action_list = []
@@ -283,12 +334,25 @@ class GroundedEnv(gym.ActionWrapper):
         # change made : lets assume the output of the ATP is \delta_a_t
         # concat_sa = self.atp_env.normalize_obs(concat_sa)
         if isinstance(self.action_tf_policy, list):
-            delta_transformed_action, _ = self.action_tf_policy[0].predict(concat_sa, deterministic=self.use_deterministic)
-            for i in range(1,len(self.action_tf_policy)):
-                delta_transformed_action_i, _ = self.action_tf_policy[i].predict(concat_sa, deterministic=self.use_deterministic)
+            delta_transformed_action, _ = self.action_tf_policy[0].predict(concat_sa,
+                                                                           deterministic=self.use_deterministic)
+            for i in range(1, len(self.action_tf_policy)):
+                delta_transformed_action_i, _ = self.action_tf_policy[i].predict(concat_sa,
+                                                                                 deterministic=self.use_deterministic)
                 delta_transformed_action += delta_transformed_action_i
             delta_transformed_action = delta_transformed_action / len(self.action_tf_policy)
         else:
+            if concat_sa.shape[0] != 20:
+                from itertools import chain
+                act = concat_sa[1:].reshape(1, -1)
+                obs = np.asarray([list(chain.from_iterable(concat_sa[0].values()))])
+                concat_sa = np.concatenate((obs,act), axis=1).astype('float32').reshape(-1)
+
+                # print("="*10)
+                # print(concat_sa)
+                # print(concat_sa.shape)
+                # print("="*10)
+
             delta_transformed_action, _ = self.action_tf_policy.predict(concat_sa, deterministic=self.use_deterministic)
 
         if self.scale_atp:
@@ -298,7 +362,7 @@ class GroundedEnv(gym.ActionWrapper):
 
         # print('delta : ',delta_transformed_action)
 
-        transformed_action = action + self.alpha*delta_transformed_action
+        transformed_action = action + self.alpha * delta_transformed_action
         # transformed_action = action + delta_transformed_action
 
         transformed_action = np.clip(transformed_action, self.low, self.high)
@@ -325,19 +389,19 @@ class GroundedEnv(gym.ActionWrapper):
             rew = rew - 1e-3 * np.square(action).sum() + 1e-3 * np.square(transformed_action).sum()
         elif 'HalfCheetah' in self.env.unwrapped.spec.id:
             rew = rew - 0.1 * np.square(action).sum() + 0.1 * np.square(transformed_action).sum()
-        elif 'Swimmer' in self.env.unwrapped.spec.id :
+        elif 'Swimmer' in self.env.unwrapped.spec.id:
             rew = rew - 0.0001 * np.square(action).sum() + 0.0001 * np.square(transformed_action).sum()
-        elif 'Reacher' in self.env.unwrapped.spec.id :
+        elif 'Reacher' in self.env.unwrapped.spec.id:
             rew = rew - np.square(action).sum() + np.square(transformed_action).sum()
-        elif 'Ant' in self.env.unwrapped.spec.id :
-            rew = rew - 0.5*np.square(action).sum() + 0.5*np.square(transformed_action).sum()
-        elif 'Humanoid' in self.env.unwrapped.spec.id :
+        elif 'Ant' in self.env.unwrapped.spec.id:
+            rew = rew - 0.5 * np.square(action).sum() + 0.5 * np.square(transformed_action).sum()
+        elif 'Humanoid' in self.env.unwrapped.spec.id:
             rew = rew - 0.1 * np.square(action).sum() + 0.1 * np.square(transformed_action).sum()
-        elif 'Pusher' in self.env.unwrapped.spec.id :
+        elif 'Pusher' in self.env.unwrapped.spec.id:
             rew = rew - np.square(action).sum() + np.square(transformed_action).sum()
-        elif 'Walker2d' in self.env.unwrapped.spec.id :
+        elif 'Walker2d' in self.env.unwrapped.spec.id:
             rew = rew - 1e-3 * np.square(action).sum() + 1e-3 * np.square(transformed_action).sum()
-        elif 'HumanoidStandup' in self.env.unwrapped.spec.id :
+        elif 'HumanoidStandup' in self.env.unwrapped.spec.id:
             rew = rew - 0.1 * np.square(action).sum() + 0.1 * np.square(transformed_action).sum()
 
         if done and self.data_collection_mode:
@@ -357,7 +421,7 @@ class GroundedEnv(gym.ActionWrapper):
     def plot_action_transformation(
             self,
             expt_path,
-            show_plot=False,
+            show_plot=True,
             max_points=3000):
         """Graphs transformed actions vs input actions"""
         num_action_space = self.env.action_space.shape[0]
@@ -383,17 +447,18 @@ class GroundedEnv(gym.ActionWrapper):
             return
 
         # plotting the data points starts here
-        fig = plt.figure(figsize=(int(10*num_action_space), 10))
+        fig = plt.figure(figsize=(int(10 * num_action_space), 10))
         for act_num in range(num_action_space):
-            ax = fig.add_subplot(1, num_action_space, act_num+1)
-            sns.kdeplot(self.raw_actions_list[:, act_num], self.transformed_action_list[:, act_num], shade=True, ax=ax)
-            # ax.plot(self.raw_actions_list[:, act_num], self.transformed_action_list[:, act_num], colors[act_num])
-            ax.plot([action_low, action_high], [action_low, action_high], 'k-') # black line
-            ax.plot([action_low, action_high], [0, 0], 'r-') # red lines
-            ax.plot([0, 0], [action_low, action_high], 'r-') # red lines
+            ax = fig.add_subplot(1, num_action_space, act_num + 1)
+            # sns.kdeplot(self.raw_actions_list[:, act_num], self.transformed_action_list[:, act_num], shade=True, ax=ax)
+            ax.plot(self.raw_actions_list[:, act_num], self.transformed_action_list[:, act_num], colors[act_num])
+            ax.plot([action_low, action_high], [action_low, action_high], 'k-')  # black line
+            ax.plot([action_low, action_high], [0, 0], 'r-')  # red lines
+            ax.plot([0, 0], [action_low, action_high], 'r-')  # red lines
 
-            ax.title.set_text('Action Space # :'+ str(act_num+1)+'/'+str(num_action_space))
-            ax.set(xlabel = 'Input Actions', ylabel = 'Transformed Actions', xlim=[action_low, action_high], ylim=[action_low, action_high])
+            ax.title.set_text('Action Space # :' + str(act_num + 1) + '/' + str(num_action_space))
+            ax.set(xlabel='Input Actions', ylabel='Transformed Actions', xlim=[action_low, action_high],
+                   ylim=[action_low, action_high])
         plt.suptitle('Plot of Input action $a_t$ vs Transformed action $\\tilde{a}_t$')
 
         plt.savefig(expt_path)
@@ -415,7 +480,7 @@ class MujocoNormalized(gym.ObservationWrapper):
         self.max_obs = self._get_max_obs(env_name)
 
     def observation(self, observation):
-        return observation/self.max_obs
+        return observation / self.max_obs
 
     def _get_max_obs(self, env_name):
         # get the parent environment here
@@ -427,23 +492,24 @@ class MujocoNormalized(gym.ObservationWrapper):
                                    3.149, 2.767, 2.912, 4.063, 2.581, 10.]),
             # 'Walker2d-v2': np.array([1.547, 0.783, 0.601,0.177,1.322,0.802,0.695,1.182,4.671,3.681,
             #                            5.796,10.,10.,10.,10.,10.,10.]), # old
-            'Walker2d-v2': np.array([ 1.35,0.739,1.345,1.605,1.387,1.063,1.202 ,1.339  ,4.988  ,2.863,
-                                        10.,10.,10.,10.,10.,10.,10.   ]),
-            'MinitaurBulletEnv-v0': np.array([  3.1515927,   3.1515927,   3.1515927,   3.1515927,   3.1515927,
-                                                 3.1515927,   3.1515927,   3.1515927, 167.72488  , 167.72488  ,
-                                               167.72488  , 167.72488  , 167.72488  , 167.72488  , 167.72488  ,
-                                               167.72488  ,   5.71     ,   5.71     ,   5.71     ,   5.71     ,
-                                                 5.71     ,   5.71     ,   5.71     ,   5.71     ,   1.01     ,
-                                                 1.01     ,   1.01     ,   1.01     ]),
-            'AntPyBulletEnv-v0': np.array([0.2100378,  0.5571242,  1. ,        1.0959914,  0.663276,   0.5758094,
-                                         0.1813731,  0.2803405,  1.0526485,  1.5340704  ,1.7009641,  1.6335357,
-                                         1.1145028 , 1.9834042 , 1.6994406 , 0.8969864 , 1.1013167 , 1.9742222,
-                                         1.9255029  ,0.83447146 ,1.0699006  ,1.5556577,  1.8345532  ,1.1241446,
-                                         1.         ,1. ,        1.  ,       1.        ]),
-            'HalfCheetah-v2': np.array([ 0.593, 3.618, 1.062, 0.844, 0.837, 1.088, 0.88 , 0.587, 4.165, 3.58,
-                                           7.851, 20.837, 25.298, 25.11 , 30.665, 31.541, 15.526]),
+            'Walker2d-v2': np.array([1.35, 0.739, 1.345, 1.605, 1.387, 1.063, 1.202, 1.339, 4.988, 2.863,
+                                     10., 10., 10., 10., 10., 10., 10.]),
+            'MinitaurBulletEnv-v0': np.array([3.1515927, 3.1515927, 3.1515927, 3.1515927, 3.1515927,
+                                              3.1515927, 3.1515927, 3.1515927, 167.72488, 167.72488,
+                                              167.72488, 167.72488, 167.72488, 167.72488, 167.72488,
+                                              167.72488, 5.71, 5.71, 5.71, 5.71,
+                                              5.71, 5.71, 5.71, 5.71, 1.01,
+                                              1.01, 1.01, 1.01]),
+            'AntPyBulletEnv-v0': np.array([0.2100378, 0.5571242, 1., 1.0959914, 0.663276, 0.5758094,
+                                           0.1813731, 0.2803405, 1.0526485, 1.5340704, 1.7009641, 1.6335357,
+                                           1.1145028, 1.9834042, 1.6994406, 0.8969864, 1.1013167, 1.9742222,
+                                           1.9255029, 0.83447146, 1.0699006, 1.5556577, 1.8345532, 1.1241446,
+                                           1., 1., 1., 1.]),
+            'HalfCheetah-v2': np.array([0.593, 3.618, 1.062, 0.844, 0.837, 1.088, 0.88, 0.587, 4.165, 3.58,
+                                        7.851, 20.837, 25.298, 25.11, 30.665, 31.541, 15.526]),
 
             # 'Humanoid-v2': np.array([]),
+            # 'FetchReach-v1': np.array([])
         }
 
         if parent_env not in max_obs_dict.keys():

@@ -41,7 +41,7 @@ from simulation_grounding.generate_target_traj import generate_target_traj
 
 
 best_mean_reward, n_steps = -np.inf, 0
-PATH_PREFIX = '..'
+PATH_PREFIX = 'opolo-baselines'
 def is_mujoco(env):
     for name in ['Hopper', 'Half', 'Walker', 'Reacher', 'Ant', 'Humanoid', 'Pendulum', 'Pusher', 'Swimmer', 'Thrower', 'Striker']:
         if name in env:
@@ -196,7 +196,7 @@ def eval_atari_model(args, model, env, step=30000):
 
 
 def load_expert_hyperparams(args):
-    with open('../hyperparams/{}.yml'.format(args.algo), 'r') as f:
+    with open(PATH_PREFIX + '/hyperparams/{}.yml'.format(args.algo), 'r') as f:
         hyperparams_dict = yaml.load(f)
         if env_id in list(hyperparams_dict.keys()):
             hyperparams = hyperparams_dict[env_id]
@@ -268,13 +268,13 @@ if __name__ == '__main__':
     parser.add_argument('--log-interval', help='Override log interval (default: -1, no change)', default=1000,
                         type=int)
     parser.add_argument('-f', '--log-folder', help='Log folder', type=str, default='logs')
-    parser.add_argument('--seed', help='Random generator seed', type=int, default=0)
-    parser.add_argument('--log-dir', help='Log directory', type=str, default='test\logs') # required=True,
+    parser.add_argument('--seed', help='Random generator seed', type=int, default=2)
+    parser.add_argument('--log-dir', help='Log directory', type=str, default='opolo-baselines/run/test/logs') # required=True,
     parser.add_argument('-optimize', '--optimize-hyperparameters', action='store_true', default=False,
                         help='Run hyperparameters search')
     parser.add_argument('--n-jobs', help='Number of parallel threads when optimizing hyperparameters', type=int, default=6)
     parser.add_argument('--n-episodes', help='Number of expert episodes', type=int, default=None)
-    parser.add_argument('--n-transitions', help='Number of expert transitions', type=int, default=10000)
+    parser.add_argument('--n-transitions', help='Number of expert transitions', type=int, default=None)
     parser.add_argument('--no-render', help='If render', default=True)
     parser.add_argument('--verbose', help='Verbose mode (0: no output, 1: INFO)', default=1,
                         type=int)
@@ -293,6 +293,18 @@ if __name__ == '__main__':
     #     type=str,
     #     default='td3-opolo-idm-decay-reg')
     # args = parser.parse_args()
+
+    # from gym.envs.robotics.fetch.reach import FetchReachEnv
+    # environment=FetchReachEnv()  # FetchReach-v1
+    # print(environment)
+    # print(str(environment))
+    
+    args.env = "FetchReach-v1"
+    # args.real_env = "FetchReachModified-v1"
+    args.real_env = "FetchReach-v1"
+
+    args.rollout_policy_path = PATH_PREFIX + "/run/test.zip"
+    args.n_episodes = 50
 
 
     # extend log directory with experiment details
@@ -373,23 +385,29 @@ if __name__ == '__main__':
 
     generate_demo = False
     if generate_demo:
-        save_path = '../simulation_grounding/real_traj'
+        save_path = PATH_PREFIX + '/simulation_grounding/real_traj'
         if args.n_episodes is not None:
             data_save_dir = os.path.join(save_path, "{}_episodes_{}".format(args.real_env,args.n_episodes))
         else:
             data_save_dir = os.path.join(save_path, "{}_transitions_{}".format(args.real_env, args.n_transitions))
         real_env = create_real_env(args, hyperparams)
-        generate_target_traj(args.rollout_policy_path, real_env, data_save_dir, args.n_episodes, args.n_transitions, args.seed)
+        traj = generate_target_traj(args.rollout_policy_path,
+                                    real_env,
+                                    data_save_dir,
+                                    args.n_episodes,
+                                    args.n_transitions,
+                                    args.seed)
         data_save_dir = data_save_dir + ".npz"
         config['expert_data_path'] = data_save_dir
     else:
-        data_save_path = '../simulation_grounding/real_traj'
+        data_save_path = PATH_PREFIX + '/simulation_grounding/real_traj'
         # max_score = config['optimal_score']
         if args.n_episodes is not None:
             data_save_dir = os.path.join(data_save_path, "{}_episodes_{}".format(args.real_env,args.n_episodes))
         else:
             data_save_dir = os.path.join(data_save_path, "{}_transitions_{}".format(args.real_env, args.n_transitions))
-        data_save_dir = data_save_dir + ".npz"
+        # data_save_dir = data_save_dir + ".npz"
+        data_save_dir = "opolo-baselines/simulation_grounding/real_traj/Uarm_data.npz"
         config['expert_data_path'] = data_save_dir
 
     os.makedirs(args.log_dir, exist_ok=True)
@@ -441,12 +459,13 @@ if __name__ == '__main__':
         if is_mujoco(args.env):
             eval_mujoco_model(args, model, env)
     else:
+        # if True:
         if need_demo(config):
             print(data_save_dir)
             assert os.path.isfile(data_save_dir)
-            print("Loading Demo Data: {}".format(data_save_dir))
+            print("Loading Demo Data: {}".format(data_save_dir))    
         model = ALGOS[args.algo](
-            policy,
+            'MlpPolicy',
             env=env,
             tensorboard_log=tensorboard_log,
             verbose=args.verbose,

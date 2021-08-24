@@ -3,7 +3,7 @@ import numpy as np
 import os
 import random
 from stable_baselines.common.vec_env import DummyVecEnv, VecNormalize
-from stable_baselines import TRPO, PPO2, SAC, TRPOGAIFO, OPOLO
+from stable_baselines import TRPO, PPO2, SAC, TRPOGAIFO, OPOLO, HER
 from stable_baselines.gail.dataset.dataset import ExpertDataset
 
 from simulation_grounding.atp_envs import ATPEnv, GroundedEnv, MujocoNormalized, collect_trajectories
@@ -11,11 +11,17 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-ALGO = TRPO
-Grounding_ALGO = OPOLO
+ALGO = HER
+Grounding_ALGO = TRPOGAIFO
 # set the environment here :
-REAL_ENV_NAME = 'Walker2dModified-v2'  # HopperFrictionModified-v2, Walker2dModified, InvertedPendulumModified
-SIM_ENV_NAME = 'Walker2d-v2'  # Hopper-v2, Walker2d, InvertedPendulum
+# REAL_ENV_NAME = 'Walker2dModified-v2'  # HopperFrictionModified-v2, Walker2dModified, InvertedPendulumModified
+# SIM_ENV_NAME = 'Walker2d-v2'  # Hopper-v2, Walker2d, InvertedPendulum
+
+REAL_ENV_NAME = 'FetchReach-v1'  
+SIM_ENV_NAME = 'FetchReach-v1' 
+PATH_PREFIX = 'opolo-baselines'
+
+
 MUJOCO_NORMALIZE = True
 ATP_NAME = '1'
 INDICATOR = '_run1'
@@ -28,8 +34,10 @@ TOTAL_STEPS = 100000 # 100000
 def plot_state_distributions(algo=ALGO):
     random.seed(SEED)
     np.random.seed(SEED)
-    test_policy = '../simulation_grounding/models/' + algo.__name__ + '_initial_policy_steps_' + SIM_ENV_NAME + '_' + str(
-        TIME_STEPS) + '_.pkl'
+    # test_policy = '../simulation_grounding/models/' + algo.__name__ + '_initial_policy_steps_' + SIM_ENV_NAME + '_' + str(
+    #     TIME_STEPS) + '_.pkl'
+
+    test_policy = PATH_PREFIX + "/run/test.zip"
 
     if algo.__name__ == 'PPO2':
         algo = PPO2
@@ -41,11 +49,14 @@ def plot_state_distributions(algo=ALGO):
     sim_env = gym.make(SIM_ENV_NAME)
     real_env = gym.make(REAL_ENV_NAME)
 
-    if MUJOCO_NORMALIZE:
-        sim_env = MujocoNormalized(sim_env)
-        real_env = MujocoNormalized(real_env)
+    # if MUJOCO_NORMALIZE:
+    #     sim_env = MujocoNormalized(sim_env)
+    #     real_env = MujocoNormalized(real_env)
     # atp_policy = '../run/tmp/logs/trpo-gaifo/trpogaifo/'+ SIM_ENV_NAME + '/rank1/action_transformer_policy1.pkl'
-    atp_policy = '../run/tmp/logs/td3-opolo-idm-decay-reg/opolo/' + SIM_ENV_NAME + '/rank1/action_transformer_policy1.pkl'
+    # atp_policy = '../run/tmp/logs/td3-opolo-idm-decay-reg/opolo/' + SIM_ENV_NAME + '/rank1/action_transformer_policy1.pkl'
+
+    atp_policy = PATH_PREFIX + "/run/test/logs/trpo-gaifo/trpogaifo/FetchReach-v1/rank0/action_transformer_policy1.pkl"
+
     # atp_policy = '../run/first_trial0317/logs/td3-opolo-idm-decay-reg/opolo/'+ SIM_ENV_NAME + '/rank'+str(ATP_NAME)+'/action_transformer_policy1.pkl'
     # atp_policy = '../simulation_grounding/garat_baselines/' + ATP_NAME + '/grounding_step_0/action_transformer_policy1_49.pkl'
 
@@ -81,7 +92,7 @@ def plot_state_distributions(algo=ALGO):
     # 1. Collect real trajectory and get transition errors
     real_env.seed(SEED)
     real_Ts, real_rews, transition_errors = collect_trajectories(env=real_env,
-                                                                 policy=algo.load(load_path=test_policy, seed=SEED+1000),
+                                                                 policy=algo.load(load_path=test_policy, seed=SEED+1000, env=real_env),
                                                                  limit_trans_count=TOTAL_STEPS,
                                                                  deterministic=False,
                                                                  transition_errors=True,
@@ -92,7 +103,7 @@ def plot_state_distributions(algo=ALGO):
 
     sim_env.seed(SEED)
     sim_Ts, sim_rews, _ = collect_trajectories(env=sim_env,
-                                               policy=algo.load(load_path=test_policy, seed=SEED+1000),
+                                               policy=algo.load(load_path=test_policy, seed=SEED+1000, env=sim_env),
                                                limit_trans_count=TOTAL_STEPS,
                                                deterministic=False,
                                                )
@@ -101,7 +112,7 @@ def plot_state_distributions(algo=ALGO):
     grounded_env.seed(SEED)
     grounded_env.reset_saved_actions()
     grounded_Ts, grnd_rews, _ = collect_trajectories(env=grounded_env,
-                                                     policy=algo.load(load_path=test_policy, seed=SEED+1000),
+                                                     policy=algo.load(load_path=test_policy, seed=SEED+1000, env=grounded_env),
                                                      limit_trans_count=TOTAL_STEPS,
                                                      deterministic=False,
                                                      )
