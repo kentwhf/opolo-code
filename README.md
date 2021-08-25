@@ -1,6 +1,6 @@
 # *GARAT*: Generative Adversarial Reinforced Action Transformation
 
-Research code to accompany the paper: [*An Imitation from Observation Approach to Transfer Learning with Dynamics Mismatch*](https://arxiv.org/pdf/2008.01594.pdf).
+Research code refered to the paper: [*An Imitation from Observation Approach to Transfer Learning with Dynamics Mismatch*](https://arxiv.org/pdf/2008.01594.pdf).
 
 ### Project Scope:
 
