@@ -36,6 +36,10 @@ Results can be found at: <code>opolo-baselines/atp_plots/</code>
 
 #### Reminders:
 
+- Please contact or read our final report for more details 
+
+- For Windows users, WSL2 is recommended for the purpose of using the <code>mujoco</code> library
+
 - One can tune hyperparameters for the used grounding algorithm at:
 <pre><code>opolo-baselines/hyperparams/</code></pre>
 
@@ -49,4 +53,3 @@ Results can be found at: <code>opolo-baselines/atp_plots/</code>
 
 where <code>rank0</code> is of full-length samples and gamma = 0.95, <code>rank1</code> is of reduced-length samples and gamma = 0.95,  and <code>rank1</code> is of reduced-length samples and gamma = 0.1
 
-- For Windows users, WSL2 is recommended for the purpose of using the <code>mujoco</code> library
